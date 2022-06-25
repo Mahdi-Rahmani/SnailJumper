@@ -10,8 +10,14 @@ class NeuralNetwork:
         :param layer_sizes: A list containing neuron numbers in each layers. For example [3, 10, 2] means that there are
         3 neurons in the input layer, 10 neurons in the hidden layer, and 2 neurons in the output layer.
         """
-        # TODO (Implement FCNNs architecture here)
-        pass
+        self.weights = []
+        self.biases = []
+
+        number_of_layers = len(layer_sizes)  # Number of NeuralNetwork
+        mu, sigma = 0, 1                     # mean and standard deviation
+        for i in range(1, number_of_layers):
+            self.weights.append(np.random.normal(mu, sigma, size=(layer_sizes[i], layer_sizes[i - 1])))
+            self.biases.append(np.zeros((layer_sizes[i], 1)))
 
     def activation(self, x):
         """
