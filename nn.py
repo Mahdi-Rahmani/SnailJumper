@@ -13,9 +13,9 @@ class NeuralNetwork:
         self.weights = []
         self.biases = []
 
-        number_of_layers = len(layer_sizes)  # Number of NeuralNetwork
+        self.number_of_layers = len(layer_sizes)  # Number of NeuralNetwork
         mu, sigma = 0, 1                     # mean and standard deviation
-        for i in range(1, number_of_layers):
+        for i in range(1, self.number_of_layers):
             self.weights.append(np.random.normal(mu, sigma, size=(layer_sizes[i], layer_sizes[i - 1])))
             self.biases.append(np.zeros((layer_sizes[i], 1)))
 
@@ -25,8 +25,7 @@ class NeuralNetwork:
         :param x: Vector of a layer in our network.
         :return: Vector after applying activation function.
         """
-        # TODO (Implement activation function here)
-        pass
+        return self.get_activation("Sigmoid", x)
 
     def forward(self, x):
         """
@@ -34,5 +33,25 @@ class NeuralNetwork:
         :param x: Input vector which is a numpy array.
         :return: Output vector
         """
-        # TODO (Implement forward function here)
-        pass
+        # Output of first layer must be calculated separately
+        output = self.activation(np.dot(self.weights[0], x) + self.biases[0])
+        # then output of each layer is the input of next layer
+        for i in range(1,self.number_of_layers):
+            output = self.activation(np.dot(self.weights[i], output) + self.biases[0])
+        return output
+
+    def get_activation(self, activation_name, x):
+        """
+        Receives input vector and activation name input parameters and applying activation function.
+        :param activation_name: Name of activation function that we want to use and it is a string.
+        :param x: Input vector which is a numpy array.
+        :return: output of activation function that applied on x
+        """
+        if activation_name == "Sigmoid":
+            return 1 / (1 + np.exp(-x))
+        elif activation_name == "ReLU":
+            return np.maximum(0, x)
+        elif activation_name == "tanh":
+            return np.tanh(x)
+        else:
+            raise ValueError("The activation function isn't valid")
