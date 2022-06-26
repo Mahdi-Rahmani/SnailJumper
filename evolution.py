@@ -58,7 +58,7 @@ class Evolution:
                 parent1 = new_parents[i]
                 parent2 = new_parents[i+1]
                 # 2-3 generate children with crossover
-                child1, child2 = self.crossover(parent1, parent2, P_c = 0.8, crossover_method=self.crossover_method)
+                child1, child2 = self.crossover(parent1, parent2, P_c=0.8, crossover_method=self.crossover_method)
                 # 2-4 mutation on each child
                 self.mutate(child1, 0.1)
                 self.mutate(child2, 0.1)
@@ -198,21 +198,100 @@ class Evolution:
             selected_players.append(best_from_QSelected)
         return selected_players
 
-    def crossover(self, player1, player2, P_c=0.6, crossover_method="two-points"):
-        """
-        Gets two players as an input and produces a child.
-        """
+    def crossover(self, player1, player2, P_c=0.8, crossover_method="multi-points"):
         # 1- generate uniform random number in [0,1]
         uniform_rand_num = np.random.uniform(0, 1, 1)
         # 2- check with crossover probability
         if uniform_rand_num > P_c:
             return player1, player2
         # 3- choose crossover method according to input parameter
-        if crossover_method = "uniform":
-            pass
-        elif crossover_method = "single_point":
-            pass
-        elif crossover_method = "two_points":
-            pass
+        if crossover_method == "uniform":
+            return self.uniform_crossover(player1, player2)
+        elif crossover_method =="multi_points":
+            return self.multi_points_crossover(player1, player2, n=n)
         else:
             raise ValueError("invalid crossover method")
+
+    def uniform_crossover(self, player1, player2):
+        # first we create copy from parents for swapping perceptrons easily
+        player1_copy = self.clone_player(player1)
+        player2_copy = self.clone_player(player2)
+        for i in range(len(player1.nn.weights)):
+            # we should save shape and size of weights and biases. shape is necessary for
+            # creating matrix to its first form after crossover, with reshape function
+            # also we need total size because we flatten weights and biases and then we should know
+            # which part of weights must be changed with the help of size
+            #  -- weights
+            weights_shape = player1.nn.weights[i].shape
+            weights_size = player1.nn.weights[i].size
+            #  -- biases
+            biases_shape = player1.nn.biases[i].shape
+            biases_size = player1.nn.biases[i].size
+
+            # in this step first we flatten matrices and then we should produce uniform random number between 0 and 1
+            # for each weights[j] then if the uniform_rand_num > 0.5 we change that parents weights[j]
+            #  -- weights
+            for j in range(weights_size):
+                uniform_rand_num = np.random.uniform(0, 1)
+                if uniform_rand_num>0.5:
+                    player1.nn.weights[i].flatten()[j] = player2_copy.nn.weights[i].flatten()[j]
+                    player2.nn.weights[i].flatten()[j] = player1_copy.nn.weights[i].flatten()[j]
+            #  -- biases
+            for j in range(biases_size):
+                uniform_rand_num = np.random.uniform(0, 1)
+                if uniform_rand_num > 0.5:
+                    player1.nn.biases[i].flatten()[j] = player2_copy.nn.biases[i].flatten()[j]
+                    player2.nn.biases[i].flatten()[j] = player1_copy.nn.biases[i].flatten()[j]
+
+            # now we reshape weights and biases matrices to their first shape
+            #  -- weights
+            player1.nn.weights[i].reshape(weights_shape)
+            player2.nn.weights[i].reshape(weights_shape)
+            #  -- biases
+            player1.nn.biases[i].reshape(biases_shape)
+            player2.nn.biases[i].reshape(biases_shape)
+
+        return player1, player2
+
+    def multi_points_crossover(self, player1, player2, n):
+        # number of parts
+        parts_num = n+1
+        # first we create copy from parents for swapping perceptrons easily
+        player1_copy = self.clone_player(player1)
+        player2_copy = self.clone_player(player2)
+        for i in range(len(player1.nn.weights)):
+            # we should save shape and size of weights and biases. shape is necessary for
+            # creating matrix to its first form after crossover, with reshape function
+            # also we need total size because we flatten weights and biases and then we should know
+            # which part of weights must be changed with the help of size
+            #  -- weights
+            weights_shape = player1.nn.weights[i].shape
+            weights_size = player1.nn.weights[i].size
+            #  -- biases
+            biases_shape = player1.nn.biases[i].shape
+            biases_size = player1.nn.biases[i].size
+
+            # in this step first we flatten matrices and then we break them in parts_num parts.
+            # then the odd part(for example if n=2 : between 1/3 and 2/3) of parents must be changed with each other.
+            for j in range(1, parts_num, 2):
+                # -- weights
+                player1.nn.weights[i].flatten()[j*weights_size // parts_num:(j+1) * weights_size // parts_num] = player2_copy.nn.weights[i].flatten()[
+                                                                                     weights_size // parts_num:(j+1) * weights_size // parts_num]
+                player2.nn.weights[i].flatten()[weights_size // parts_num:(j+1) * weights_size // parts_num] = player1_copy.nn.weights[i].flatten()[
+                                                                        weights_size // parts_num:(j+1) * weights_size // parts_num]
+                #  -- biases
+                player1.nn.biases[i].flatten()[biases_size // parts_num:(j+1) * biases_size // parts_num] = player2_copy.nn.biases[
+                                                                                               i].flatten()[
+                                                                                           biases_size // parts_num:(j+1) * biases_size // parts_num]
+                player2.nn.biases[i].flatten()[biases_size // parts_num:(j+1) * biases_size // parts_num] = player1_copy.nn.biases[
+                                                                                            i].flatten()[
+                                                                                        biases_size // parts_num:(j+1) * biases_size // parts_num]
+            # now we reshape weights and biases matrices to their first shape
+            #  -- weights
+            player1.nn.weights[i].reshape(weights_shape)
+            player2.nn.weights[i].reshape(weights_shape)
+            #  -- biases
+            player1.nn.biases[i].reshape(biases_shape)
+            player2.nn.biases[i].reshape(biases_shape)
+
+        return player1, player2
