@@ -107,7 +107,7 @@ class Evolution:
         6- compare ruler2 and ruler1 and select players
         :param players: list of players in the previous generation
         :param num_players: number of players that we return
-        :return: selected players according to RW are returned
+        :return: selected players according to SUS are returned
         """
         # define list of selected players for output
         selected_players = []
@@ -129,4 +129,23 @@ class Evolution:
                 if  ruler1[j] <= i <= ruler1[j+1]:
                     selected_players.append(players[j])
         return selected_players
-    
+
+    def  Q_tournament(self, players, num_players, Q, replace):
+        """
+        In this algorithme we choose uniform random Q players from players
+        and then choose the player with best fitness among Q players. this
+        procedure occurrs num_players times. Q tournament has two form. one
+        is replace is true and another replace is false.
+        if replace is false the selected player cant be chosen any more.
+        :param players: list of players in the previous generation
+        :param num_players: number of players that we return
+        :param Q: Q value for Q_tournament algorithme
+        :param replace: boolean value and if false the selected player cant be chosen any more
+        :return: selected players according to Q_tournament are returned
+        """
+        selected_players = []
+        for i in range(num_players):
+            random_selected_players = np.random.choice(players, Q, replace=replace)
+            best_from_QSelected = max(random_selected_players, key=lambda x: x.fitness)
+            selected_players.append(best_from_QSelected)
+        return selected_players
