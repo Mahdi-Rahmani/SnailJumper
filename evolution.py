@@ -4,12 +4,16 @@ from config import *
 from player import Player
 from operator import attrgetter
 
+
 class Evolution:
     def __init__(self):
         self.game_mode = "Neuroevolution"
         self.parent_selection_mode = parent_selection_mode
         self.selection_mode = selection_mode
         self.crossover_method = crossover_method
+        self.P_c = P_c
+        self.P_m = P_m
+        self.hyper_parameter = hyper_parameter
 
     def next_population_selection(self, players, num_players):
         """
@@ -24,7 +28,8 @@ class Evolution:
         # TODO (Additional: Implement SUS here)
 
         # TODO (Additional: Learning curve)
-        return players[: num_players]
+        self.learning_curve(players)
+        return self.select_players(players, num_players, selection_mode="roulette-wheel", Q=Q, replace=replace)
 
     def generate_new_population(self, num_players, prev_players=None):
         """
@@ -48,7 +53,8 @@ class Evolution:
                 chosen_parents = prev_players
             # 1-2 another state is selecting according to methods that implemented
             else:
-                chosen_parents = self.select_players(prev_players, num_players, parent_selection_mode, Q=Q, replace=replace)
+                chosen_parents = self.select_players(prev_players, num_players, parent_selection_mode, Q=Q,
+                                                     replace=replace)
 
             # 2- choose children
             # 2-1 clone player for creating new objects
@@ -56,12 +62,12 @@ class Evolution:
             for i in range(0, num_players, 2):
                 # 2-2 choose two parent
                 parent1 = new_parents[i]
-                parent2 = new_parents[i+1]
+                parent2 = new_parents[i + 1]
                 # 2-3 generate children with crossover
                 child1, child2 = self.crossover(parent1, parent2, P_c=0.8, crossover_method=self.crossover_method)
                 # 2-4 mutation on each child
-                self.mutate(child1, 0.1)
-                self.mutate(child2, 0.1)
+                self.mutate(child1, P_m=self.P_m, hyper_parameter=self.hyper_parameter)
+                self.mutate(child2, P_m=self.P_m, hyper_parameter=self.hyper_parameter)
                 new_players.append(child1)
                 new_players.append(child2)
             return new_players
@@ -75,7 +81,7 @@ class Evolution:
         new_player.fitness = player.fitness
         return new_player
 
-    def select_players(self, players, num_players, selection_mode, Q = 14, replace = False):
+    def select_players(self, players, num_players, selection_mode, Q=14, replace=False):
         """
 
         :param players: list of players in the previous generation
@@ -164,21 +170,21 @@ class Evolution:
         # step 2
         ruler1 = [0]
         for i in range(num_players):
-            ruler1.append(probabilities[i]+ruler1[i])
+            ruler1.append(probabilities[i] + ruler1[i])
         # step 3
-        ruler2 = [i for i in np.arange(0, 1-1/num_players, 1/num_players)]
+        ruler2 = [i for i in np.arange(0, 1 - 1 / num_players, 1 / num_players)]
         # step 4
-        uni_rand_num = np.random.uniform(0, 1/num_players)
+        uni_rand_num = np.random.uniform(0, 1 / num_players)
         # step 5
-        shifted_ruler2 = [ i + uni_rand_num for i in ruler2]
+        shifted_ruler2 = [i + uni_rand_num for i in ruler2]
         # step 6
         for i in shifted_ruler2:
-            for j in range(len(ruler1)-1):
-                if  ruler1[j] <= i <= ruler1[j+1]:
+            for j in range(len(ruler1) - 1):
+                if ruler1[j] <= i <= ruler1[j + 1]:
                     selected_players.append(players[j])
         return selected_players
 
-    def  Q_tournament(self, players, num_players, Q, replace):
+    def Q_tournament(self, players, num_players, Q, replace):
         """
         In this algorithme we choose uniform random Q players from players
         and then choose the player with best fitness among Q players. this
@@ -207,7 +213,7 @@ class Evolution:
         # 3- choose crossover method according to input parameter
         if crossover_method == "uniform":
             return self.uniform_crossover(player1, player2)
-        elif crossover_method =="multi_points":
+        elif crossover_method == "multi_points":
             return self.multi_points_crossover(player1, player2, n=n)
         else:
             raise ValueError("invalid crossover method")
@@ -233,7 +239,7 @@ class Evolution:
             #  -- weights
             for j in range(weights_size):
                 uniform_rand_num = np.random.uniform(0, 1)
-                if uniform_rand_num>0.5:
+                if uniform_rand_num > 0.5:
                     player1.nn.weights[i].flatten()[j] = player2_copy.nn.weights[i].flatten()[j]
                     player2.nn.weights[i].flatten()[j] = player1_copy.nn.weights[i].flatten()[j]
             #  -- biases
@@ -255,7 +261,7 @@ class Evolution:
 
     def multi_points_crossover(self, player1, player2, n):
         # number of parts
-        parts_num = n+1
+        parts_num = n + 1
         # first we create copy from parents for swapping perceptrons easily
         player1_copy = self.clone_player(player1)
         player2_copy = self.clone_player(player2)
@@ -275,17 +281,21 @@ class Evolution:
             # then the odd part(for example if n=2 : between 1/3 and 2/3) of parents must be changed with each other.
             for j in range(1, parts_num, 2):
                 # -- weights
-                player1.nn.weights[i].flatten()[j*weights_size // parts_num:(j+1) * weights_size // parts_num] = player2_copy.nn.weights[i].flatten()[
-                                                                                     weights_size // parts_num:(j+1) * weights_size // parts_num]
-                player2.nn.weights[i].flatten()[weights_size // parts_num:(j+1) * weights_size // parts_num] = player1_copy.nn.weights[i].flatten()[
-                                                                        weights_size // parts_num:(j+1) * weights_size // parts_num]
+                player1.nn.weights[i].flatten()[j * weights_size // parts_num:(j + 1) * weights_size // parts_num] = \
+                player2_copy.nn.weights[i].flatten()[
+                weights_size // parts_num:(j + 1) * weights_size // parts_num]
+                player2.nn.weights[i].flatten()[weights_size // parts_num:(j + 1) * weights_size // parts_num] = \
+                player1_copy.nn.weights[i].flatten()[
+                weights_size // parts_num:(j + 1) * weights_size // parts_num]
                 #  -- biases
-                player1.nn.biases[i].flatten()[biases_size // parts_num:(j+1) * biases_size // parts_num] = player2_copy.nn.biases[
-                                                                                               i].flatten()[
-                                                                                           biases_size // parts_num:(j+1) * biases_size // parts_num]
-                player2.nn.biases[i].flatten()[biases_size // parts_num:(j+1) * biases_size // parts_num] = player1_copy.nn.biases[
-                                                                                            i].flatten()[
-                                                                                        biases_size // parts_num:(j+1) * biases_size // parts_num]
+                player1.nn.biases[i].flatten()[biases_size // parts_num:(j + 1) * biases_size // parts_num] = \
+                player2_copy.nn.biases[
+                    i].flatten()[
+                biases_size // parts_num:(j + 1) * biases_size // parts_num]
+                player2.nn.biases[i].flatten()[biases_size // parts_num:(j + 1) * biases_size // parts_num] = \
+                player1_copy.nn.biases[
+                    i].flatten()[
+                biases_size // parts_num:(j + 1) * biases_size // parts_num]
             # now we reshape weights and biases matrices to their first shape
             #  -- weights
             player1.nn.weights[i].reshape(weights_shape)
@@ -295,3 +305,31 @@ class Evolution:
             player2.nn.biases[i].reshape(biases_shape)
 
         return player1, player2
+
+    def mutate(self, child, P_m, hyper_parameter):
+
+        for i in range(len(child.nn.weights)):
+            #  -- weights
+            weights_shape = child.nn.weights[i].shape
+            weights_size = child.nn.weights[i].size
+            #  -- biases
+            biases_shape = child.nn.biases[i].shape
+            biases_size = child.nn.biases[i].size
+
+            for j in range(weights_size):
+                if np.random.uniform(0, 1) <= P_m:
+                    child.nn.weights[i].flatten()[j] = np.random.normal(0, 1) * hyper_parameter * \
+                                                       child.nn.weights[i].flatten()[j]
+
+            for j in range(biases_size):
+                if np.random.uniform(0, 1) <= P_m:
+                    child.nn.biases[i].flatten()[j] = np.random.normal(0, 1) * hyper_parameter * \
+                                                      child.nn.biases[i].flatten()[j]
+            # now we reshape weights and biases matrices to their first shape
+            #  -- weights
+            child.nn.weights[i].reshape(weights_shape)
+            child.nn.weights[i].reshape(weights_shape)
+            #  -- biases
+            child.nn.biases[i].reshape(biases_shape)
+            child.nn.biases[i].reshape(biases_shape)
+
