@@ -70,7 +70,7 @@ class Evolution:
         instead of implementing 2,3,4 step manually we use np.random.choice() function
         :param players: list of players in the previous generation
         :param num_players: number of players that we return
-        :return: num_players players according to RW are returned as a
+        :return: selected players according to RW are returned
         """
         # step 1
         probabilities = self.fitness_proportionate(players)
@@ -95,4 +95,38 @@ class Evolution:
             probabilities.append(player.fitness / total_fitness)
 
         return probabilities
+
+    def SUS(self, players, num_players):
+        """
+        We know that for SUS :
+        1- find each player probability
+        2- create a ruler that we associate an area for each player proportionate to its probability
+        3- create another ruler with size of 1-(1/num_players)
+        4- create a uniform random number in[0,1/num_players]
+        5- shift second ruler as long as uniform random number that produced in step 4
+        6- compare ruler2 and ruler1 and select players
+        :param players: list of players in the previous generation
+        :param num_players: number of players that we return
+        :return: selected players according to RW are returned
+        """
+        # define list of selected players for output
+        selected_players = []
+        # step 1
+        probabilities = self.fitness_proportionate(players)
+        # step 2
+        ruler1 = [0]
+        for i in range(num_players):
+            ruler1.append(probabilities[i]+ruler1[i])
+        # step 3
+        ruler2 = [i for i in np.arange(0, 1-1/num_players, 1/num_players)]
+        # step 4
+        uni_rand_num = np.random.uniform(0, 1/num_players)
+        # step 5
+        shifted_ruler2 = [ i + uni_rand_num for i in ruler2]
+        # step 6
+        for i in shifted_ruler2:
+            for j in range(len(ruler1)-1):
+                if  ruler1[j] <= i <= ruler1[j+1]:
+                    selected_players.append(players[j])
+        return selected_players
     
