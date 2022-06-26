@@ -1,12 +1,15 @@
 import copy
 import numpy as np
-
+from config import *
 from player import Player
-
+from operator import attrgetter
 
 class Evolution:
     def __init__(self):
         self.game_mode = "Neuroevolution"
+        self.parent_selection_mode = parent_selection_mode
+        self.selection_mode = selection_mode
+        self.crossover_method = crossover_method
 
     def next_population_selection(self, players, num_players):
         """
@@ -35,8 +38,32 @@ class Evolution:
         if first_generation:
             return [Player(self.game_mode) for _ in range(num_players)]
         else:
-            # TODO ( Parent selection and child generation )
-            new_players = prev_players  # DELETE THIS AFTER YOUR IMPLEMENTATION
+            # for player in prev_players:
+            #   new_parents.append(self.clone_player(player))
+            new_players = []
+            # 1- select parents
+            chosen_parents = []
+            # 1-1  one state is all of previous players are chosen as parents
+            if self.parent_selection_mode == 'all':
+                chosen_parents = prev_players
+            # 1-2 another state is selecting according to methods that implemented
+            else:
+                chosen_parents = self.select_players(prev_players, num_players, parent_selection_mode, Q=Q, replace=replace)
+
+            # 2- choose children
+            # 2-1 clone player for creating new objects
+            new_parents = [self.clone_player(parent) for parent in chosen_parents]
+            for i in range(0, num_players, 2):
+                # 2-2 choose two parent
+                parent1 = new_parents[i]
+                parent2 = new_parents[i+1]
+                # 2-3 generate children with crossover
+                child1, child2 = self.crossover(parent1, parent2, P_c = 0.8, crossover_method=self.crossover_method)
+                # 2-4 mutation on each child
+                self.mutate(child1, 0.1)
+                self.mutate(child2, 0.1)
+                new_players.append(child1)
+                new_players.append(child2)
             return new_players
 
     def clone_player(self, player):
@@ -47,6 +74,27 @@ class Evolution:
         new_player.nn = copy.deepcopy(player.nn)
         new_player.fitness = player.fitness
         return new_player
+
+    def select_players(self, players, num_players, selection_mode, Q = 14, replace = False):
+        """
+
+        :param players: list of players in the previous generation
+        :param num_players: number of players that we return
+        :param selection_mode: the method that we use for selection. its type is string
+        :param Q: this parameter is only for Q tournament. its type is integer
+        :param replace: this parameter is only for Q tournament. its type is boolean
+        :return: selected players according to selection_mode that user use
+        """
+        if selection_mode == "top_k":
+            return self.top_k(players, num_players)
+        elif selection_mode == "roulette_wheel":
+            return self.roulette_wheel(players, num_players)
+        elif selection_mode == "SUS":
+            return self.SUS(players, num_players)
+        elif selection_mode == "Q tournament":
+            return self.Q_tournament(players, num_players, Q, replace)
+        else:
+            raise ValueError("Invalid selection method")
 
     def top_k(self, players, num_players):
         """
@@ -146,6 +194,25 @@ class Evolution:
         selected_players = []
         for i in range(num_players):
             random_selected_players = np.random.choice(players, Q, replace=replace)
-            best_from_QSelected = max(random_selected_players, key=lambda x: x.fitness)
+            best_from_QSelected = max(random_selected_players, key=attrgetter('fitness'))
             selected_players.append(best_from_QSelected)
         return selected_players
+
+    def crossover(self, player1, player2, P_c=0.6, crossover_method="two-points"):
+        """
+        Gets two players as an input and produces a child.
+        """
+        # 1- generate uniform random number in [0,1]
+        uniform_rand_num = np.random.uniform(0, 1, 1)
+        # 2- check with crossover probability
+        if uniform_rand_num > P_c:
+            return player1, player2
+        # 3- choose crossover method according to input parameter
+        if crossover_method = "uniform":
+            pass
+        elif crossover_method = "single_point":
+            pass
+        elif crossover_method = "two_points":
+            pass
+        else:
+            raise ValueError("invalid crossover method")
