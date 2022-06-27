@@ -38,7 +38,7 @@ class Player(pygame.sprite.Sprite):
 
             self.player_smartness = player_smartness
             # number of last layer = 3 that means "left" or "right" or "none"
-            layer_sizes = [7, 20, 1]  # TODO (Design your architecture here by changing the values)
+            layer_sizes = [2 * player_smartness + 1, 25, 1]
             self.nn = NeuralNetwork(layer_sizes)
 
     def think(self, screen_width, screen_height, obstacles, player_x, player_y):
@@ -58,10 +58,15 @@ class Player(pygame.sprite.Sprite):
         x = self.make_nn_input(player_x, player_y, obstacles)
         output = self.nn.forward(x)
 
+        #if np.argmax(output) == 0:
+        #    self.change_gravity('left')
+        #elif np.argmax(output) == 2:
+        #    self.change_gravity('right')
+
         if output[0] > 0.5:
-            self.change_gravity('left')
+           self.change_gravity('left')
         else:
-            self.change_gravity('right')
+           self.change_gravity('right')
 
     def make_nn_input(self, player_x, player_y, obstacles):
 
@@ -75,7 +80,7 @@ class Player(pygame.sprite.Sprite):
             else:
                 input.append(obstacles[i]['x'] / 604)
                 input.append(obstacles[i]['y'] / 656)
-        return np.array([input])
+        return np.array(input).reshape(2*self.player_smartness+1, 1)
 
     def change_gravity(self, new_gravity):
         """

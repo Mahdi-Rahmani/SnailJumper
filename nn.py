@@ -14,7 +14,7 @@ class NeuralNetwork:
         self.biases = []
 
         self.number_of_layers = len(layer_sizes)  # Number of NeuralNetwork
-        mu, sigma = 0, 1                     # mean and standard deviation
+        mu, sigma = 0, 1                          # mean and standard deviation
         for i in range(1, self.number_of_layers):
             self.weights.append(np.random.normal(mu, sigma, size=(layer_sizes[i], layer_sizes[i - 1])))
             self.biases.append(np.zeros((layer_sizes[i], 1)))
@@ -36,8 +36,8 @@ class NeuralNetwork:
         # Output of first layer must be calculated separately
         output = self.activation(np.dot(self.weights[0], x) + self.biases[0])
         # then output of each layer is the input of next layer
-        for i in range(1,self.number_of_layers):
-            output = self.activation(np.dot(self.weights[i], output) + self.biases[0])
+        for i in range(1,self.number_of_layers-1):
+            output = self.activation(np.dot(self.weights[i], output) + self.biases[i])
         return output
 
     def get_activation(self, activation_name, x):
